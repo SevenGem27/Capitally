@@ -1,0 +1,16 @@
+{
+  "name": "Capitally",
+  "short_name": "Capitally",
+  "description": "Trova le capitali del mondo",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#aad3df",
+  "theme_color": "#007BFF",
+  "icons": [
+    {
+      "src": "capitally-icon.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
