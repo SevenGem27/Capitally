@@ -1,3 +1,22 @@
+// ==========================================
+// CONFIGURAZIONE E INIZIALIZZAZIONE FIREBASE
+// ==========================================
+const firebaseConfig = {
+  apiKey: "AIzaSyAKi-bwLLwdv87GbdVmWKWKeokzcTGJkdA",
+  authDomain: "capitally-f62f4.firebaseapp.com",
+  projectId: "capitally-f62f4",
+  storageBucket: "capitally-f62f4.firebasestorage.app",
+  messagingSenderId: "76174950116",
+  appId: "1:76174950116:web:dd116f9045a0bb5aa276f1"
+};
+
+// Inizializza Firebase e il Database Firestore
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+// Variabili globali di supporto per la classifica
+let durataPartitaMinuti = 2;
+
 // 1. Inizializzazione Mappa con accelerazione Hardware e Buffer ampio
 const myRenderer = L.canvas({ padding: 1.5 });
 
@@ -225,20 +244,18 @@ const capitali = [
 L.geoJSON(datiConfini, {
   renderer: myRenderer,
   style: { 
-    color: '#999',       // Grigio più chiaro: meno "pesante" alla vista
-    weight: 0.7,         // Linea più sottile: molto più professionale su mobile
+    color: '#999',       // Grigio più chiaro
+    weight: 0.7,         // Linea più sottile
     fillColor: '#ffffff', 
     fillOpacity: 1,
-    // Portiamo lo smoothFactor a 1: 
-    // restituisce tutti i dettagli dei confini senza "tagliare le curve"
     smoothFactor: 1 
   },
   interactive: false 
 }).addTo(map);
 
 // Variabili di Stato
-let modalitaCorrente = ''; // 'studio', 'libera', 'tempo'
-let tempoImpostato = 0; // in secondi
+let modalitaCorrente = ''; 
+let tempoImpostato = 0; 
 let tempoRimanente = 0;
 let countdownInterval;
 let capitaliDaGiocare = [];
@@ -246,11 +263,6 @@ let capitaleCorrente;
 let punteggio = 0;
 let inAttesa = false;
 let puntiniMappa = {};
-
-// Sistema di Classifiche (Un oggetto con 3 array per i 3 tempi)
-let classifiche = JSON.parse(localStorage.getItem('classificheCapitaliApp')) || {
-  '120': [], '300': [], '600': []
-};
 
 // --- GESTIONE MENU E NAVIGAZIONE ---
 function mostraSelettoreTempo() {
@@ -400,33 +412,18 @@ function finePartitaTempo() {
   inAttesa = true;
   document.getElementById('target-text').innerText = "Tempo Scaduto!";
   
-  const targetArray = classifiche[tempoImpostato.toString()];
-  const minRecord = targetArray.length < 5 ? -1 : targetArray[targetArray.length - 1].punti;
+  durataPartitaMinuti = tempoImpostato / 60;
   
-  // Mostra overlay Game Over
   document.getElementById('final-score-display').innerText = punteggio + " Punti";
-  document.getElementById('lb-time-label').innerText = tempoImpostato / 60;
+  document.getElementById('lb-time-label').innerText = durataPartitaMinuti;
   
-  if (punteggio > minRecord && punteggio > 0) {
-    setTimeout(() => {
-      const nome = prompt(`COMPLIMENTI! Sei in Top 5! Inserisci il tuo nome:`);
-      if (nome) {
-        targetArray.push({ nome: nome.substring(0, 15), punti: punteggio });
-        targetArray.sort((a, b) => b.punti - a.punti);
-        classifiche[tempoImpostato.toString()] = targetArray.slice(0, 5);
-        localStorage.setItem('classificheCapitaliApp', JSON.stringify(classifiche));
-      }
-      mostraClassificaFinale(targetArray);
-    }, 500);
-  } else {
-    mostraClassificaFinale(targetArray);
-  }
-}
+  // Prepara l'input del nome
+  document.getElementById("player-name").value = "";
+  document.getElementById("player-name").disabled = false;
+  document.getElementById("name-input-container").style.display = "block";
+  document.getElementById("leaderboard-container").style.display = "none";
 
-function mostraClassificaFinale(arrayClassifica) {
-  document.getElementById('leaderboard-list').innerHTML = 
-    arrayClassifica.map(r => `<li>${r.nome} - <b>${r.punti}</b> pt</li>`).join('');
-  document.getElementById('game-over-screen').style.display = 'flex';
+  document.getElementById("game-over-screen").style.display = "flex"; 
 }
 
 // Reattività Zoom
@@ -444,3 +441,71 @@ setTimeout(() => {
 window.addEventListener('resize', () => {
   map.invalidateSize();
 });
+
+// --- INIZIO FUNZIONI DATABASE GLOBALE ---
+function inviaPunteggioGlobale() {
+  const nomeInserito = document.getElementById("player-name").value.trim();
+  
+  if (nomeInserito === "") {
+    alert("Inserisci un nome o un nickname per salvarti in classifica!");
+    return;
+  }
+  
+  document.getElementById("player-name").disabled = true;
+  document.getElementById("btn-submit-score").innerText = "Invio in corso...";
+  
+  const nomeCollezione = "classifica_" + durataPartitaMinuti + "min";
+  
+  db.collection(nomeCollezione).add({
+    name: nomeInserito,
+    score: punteggio, // Modificato per corrispondere alla tua variabile globale
+    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+  })
+  .then(() => {
+    document.getElementById("name-input-container").style.display = "none";
+    document.getElementById("btn-submit-score").innerText = "🚀 Invia alla Classifica";
+    caricaClassificaGlobale(durataPartitaMinuti);
+  })
+  .catch((error) => {
+    console.error("Errore:", error);
+    alert("Errore di rete. Riprova tra poco.");
+    document.getElementById("player-name").disabled = false;
+    document.getElementById("btn-submit-score").innerText = "🚀 Invia alla Classifica";
+  });
+}
+
+function caricaClassificaGlobale(minuti) {
+  const nomeCollezione = "classifica_" + minuti + "min";
+  const listaHTML = document.getElementById("leaderboard-list");
+  
+  listaHTML.innerHTML = "<li>Caricamento podio...</li>";
+  document.getElementById("leaderboard-container").style.display = "block";
+  
+  db.collection(nomeCollezione)
+    .orderBy("score", "desc")
+    .limit(5)
+    .get()
+    .then((querySnapshot) => {
+      listaHTML.innerHTML = ""; 
+      if (querySnapshot.empty) {
+        listaHTML.innerHTML = "<li>Nessun punteggio record. Sii il primo!</li>";
+        return;
+      }
+      
+      let posizione = 1;
+      querySnapshot.forEach((doc) => {
+        const dati = doc.data();
+        let medaglia = posizione + ". ";
+        if (posizione === 1) medaglia = "🥇 ";
+        if (posizione === 2) medaglia = "🥈 ";
+        if (posizione === 3) medaglia = "🥉 ";
+        
+        listaHTML.innerHTML += `<li>${medaglia} ${dati.name} — <span style="color:#007BFF">${dati.score} pt</span></li>`;
+        posizione++;
+      });
+    })
+    .catch((error) => {
+      listaHTML.innerHTML = "<li>Impossibile caricare la classifica globale.</li>";
+    });
+}
+// --- FINE FUNZIONI DATABASE GLOBALE ---
