@@ -46,7 +46,7 @@
     </div>
   </div>
 
- <div id="game-over-screen" class="overlay" style="display: none;">
+<div id="game-over-screen" class="overlay" style="display: none;">
     <div class="menu-card">
       <h2>Tempo Scaduto!</h2>
       <p id="final-score-display" style="font-size: 24px; color: #007BFF; font-weight: bold; margin-bottom: 15px;"></p>
@@ -85,25 +85,6 @@
   <script src="leaflet.js"></script>
   <script src="script.js"></script>
 
-  <!-- INTERFACCIA DI GIOCO -->
-  <div id="top-bar">
-    <button id="btn-exit" onclick="tornaAlMenu()">🔙 Menù</button>
-    <div id="timer-display" style="display: none;">00:00</div>
-  </div>
-
-  <div id="ui">
-    <div id="target-text">Caricamento...</div>
-    <div id="score">Punteggio: 0</div>
-  </div>
-
-  <div id="map"></div>
-
-  <!-- Script di Gioco -->
-  <script src="world.js"></script>
-  <script src="leaflet.js"></script>
-  <script src="script.js"></script>
-
-  <!-- Script Registrazione Service Worker per l'Offline -->
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
