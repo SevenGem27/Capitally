@@ -509,3 +509,59 @@ function caricaClassificaGlobale(minuti) {
     });
 }
 // --- FINE FUNZIONI DATABASE GLOBALE ---
+
+// ==========================================
+// FUNZIONI CLASSIFICA DAL MENU PRINCIPALE
+// ==========================================
+
+function apriSchermataClassifiche() {
+  // Nasconde il menu e mostra la bacheca
+  document.getElementById('main-menu').style.display = 'none';
+  document.getElementById('leaderboard-menu-screen').style.display = 'flex';
+  
+  // Carica in automatico la classifica dei 2 minuti per non lasciare lo schermo vuoto
+  caricaClassificaMenu(2);
+}
+
+function chiudiSchermataClassifiche() {
+  document.getElementById('leaderboard-menu-screen').style.display = 'none';
+  document.getElementById('main-menu').style.display = 'flex';
+}
+
+function caricaClassificaMenu(minuti) {
+  document.getElementById('lb-menu-title').innerText = "Top 5 Globale - " + minuti + " Min";
+  const listaHTML = document.getElementById('leaderboard-menu-list');
+  
+  listaHTML.innerHTML = "<li>Caricamento in corso... ⏳</li>";
+  
+  const nomeCollezione = "classifica_" + minuti + "min";
+  
+  // Interroga il database di Firebase
+  db.collection(nomeCollezione)
+    .orderBy("score", "desc")
+    .limit(5)
+    .get()
+    .then((querySnapshot) => {
+      listaHTML.innerHTML = ""; 
+      if (querySnapshot.empty) {
+        listaHTML.innerHTML = "<li>Nessun record presente. Gioca per primo!</li>";
+        return;
+      }
+      
+      let posizione = 1;
+      querySnapshot.forEach((doc) => {
+        const dati = doc.data();
+        let medaglia = posizione + ". ";
+        if (posizione === 1) medaglia = "🥇 ";
+        if (posizione === 2) medaglia = "🥈 ";
+        if (posizione === 3) medaglia = "🥉 ";
+        
+        listaHTML.innerHTML += `<li>${medaglia} ${dati.name} — <span style="color:#007BFF">${dati.score} pt</span></li>`;
+        posizione++;
+      });
+    })
+    .catch((error) => {
+      console.error("Errore classifica menu:", error);
+      listaHTML.innerHTML = "<li>Errore di connessione.</li>";
+    });
+}
