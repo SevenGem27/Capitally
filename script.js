@@ -66,9 +66,7 @@ if (typeof datiConfini !== 'undefined') {
   }).addTo(map);
 }
 
-// ==========================================
-// IL DATABASE DELLE CAPITALI
-// ==========================================
+// IL DATABASE DELLE CAPITALI CON I CONTINENTI
 const capitali = [
 { nome: "Sukhumi", nazione: "Abcasia", lat: 43.00, lng: 41.02, continente: "Asia" },
 { nome: "Kabul", nazione: "Afghanistan", lat: 34.53, lng: 69.17, continente: "Asia" },
@@ -279,6 +277,9 @@ const capitali = [
 // 2. GESTIONE MENU E NAVIGAZIONE
 // ==========================================
 function tornaAlGrandMenu() {
+  // Sblocca i confini della mappa permettendo la vista globale
+  map.setMaxBounds([[-90, -180], [90, 180]]); 
+  
   clearInterval(countdownInterval);
   document.getElementById('continent-menu-screen').style.display = 'none';
   document.getElementById('world-menu-screen').style.display = 'none';
@@ -314,10 +315,6 @@ function nascondiSelettoreTempo() {
   document.getElementById('time-selector').style.display = 'none';
 }
 
-function tornaAlMenu() {
-  tornaAlGrandMenu();
-}
-
 function avviaModalita(modo, tempo = 0) {
   modalitaCorrente = modo;
   tempoImpostato = tempo;
@@ -330,18 +327,19 @@ function avviaModalita(modo, tempo = 0) {
   punteggio = 0;
   inAttesa = false;
   
-  // 1. FILTRA LE CAPITALI IN BASE ALLA SCELTA
+  // FILTRA LE CAPITALI IN BASE ALLA SCELTA
   if (zonaSelezionata === 'Mondo') {
       capitaliDaGiocare = [...capitali];
   } else {
       capitaliDaGiocare = capitali.filter(c => c.continente === zonaSelezionata);
   }
   
-  // 2. ZOOM AUTOMATICO SUL CONTINENTE
+  // ZOOM AUTOMATICO SUL CONTINENTE (Seziona la mappa)
   const bounds = inquadratureContinenti[zonaSelezionata];
-  map.fitBounds(bounds, { padding: [10, 10], maxZoom: 6 });
+  map.setMaxBounds(bounds); 
+  map.fitBounds(bounds, { animate: true });
   
-  // 3. GESTIONE DEI PALLINI DA MOSTRARE
+  // GESTIONE DEI PALLINI DA MOSTRARE
   for (let n in puntiniMappa) {
     let capInfo = capitali.find(c => c.nome === n);
     
@@ -355,7 +353,7 @@ function avviaModalita(modo, tempo = 0) {
     puntiniMappa[n].hitBox.unbindTooltip();
   }
 
-  // 4. RESET DELLA UI
+  // RESET DELLA UI
   if (modo === 'studio') {
     document.getElementById('target-text').innerText = `Esplora: ${zonaSelezionata}`;
     document.getElementById('score').style.display = 'none';
