@@ -14,7 +14,7 @@ html, body {
   height: 100%; 
   margin: 0; 
   padding: 0; 
-  background-color: #0a1128; 
+  background-color: #02050f; /* Un blu spaziale scurissimo, quasi nero */
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   color: #333;
   overflow: hidden; 
@@ -29,7 +29,7 @@ html, body {
   top: 0; bottom: 0; left: 0; right: 0;
   width: 100vw; 
   height: 100dvh; 
-  background-color: #0a1128; 
+  background-color: #02050f; /* Allineato al nuovo sfondo spaziale */
   image-rendering: optimizeSpeed;
   -webkit-font-smoothing: antialiased;
   z-index: 1; 
@@ -44,7 +44,7 @@ html, body {
   position: fixed; 
   top: 0; left: 0; 
   width: 100%; height: 100%;
-  background: rgba(10, 17, 40, 0.9); /* Sfondo blu scuro per staccare dal menu */
+  background: rgba(10, 17, 40, 0.9); 
   display: flex; 
   justify-content: center; 
   align-items: center;
@@ -52,8 +52,11 @@ html, body {
   backdrop-filter: blur(8px);
 }
 
-/* Evita il blur sul grand-menu in modo da far risaltare la grafica */
-#grand-menu { backdrop-filter: none; background: #0a1128; }
+/* Evita il blur sul grand-menu e fonde lo sfondo con lo spazio dell'immagine */
+#grand-menu { 
+    backdrop-filter: none; 
+    background: #02050f; 
+}
 
 .menu-card {
   background: #fdfbf7; 
@@ -140,7 +143,7 @@ button:active { transform: scale(0.96); }
     position: relative;
     width: 100%;
     max-width: 450px; /* Perfetto per mantenere le proporzioni su telefono/PC */
-    height: 100vh;
+    height: 100dvh; /* Altezza dinamica che copre tutto lo schermo */
     display: flex;
     justify-content: center;
     align-items: center;
@@ -149,8 +152,8 @@ button:active { transform: scale(0.96); }
 
 .menu-bg-img {
     width: 100%;
-    max-height: 100vh;
-    object-fit: contain; /* Assicura che l'immagine entri tutta nello schermo */
+    height: 100%;
+    object-fit: contain; /* Assicura che l'immagine entri tutta e mantenga le proporzioni */
     display: block;
 }
 
