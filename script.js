@@ -10,18 +10,18 @@ const firebaseConfig = {
   appId: "1:76174950116:web:dd116f9045a0bb5aa276f1"
 };
 
-// Inizializza Firebase e il Database Firestore
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-// Variabili globali di supporto per la classifica
 let durataPartitaMinuti = 2;
 
-// 1. Inizializzazione Mappa con accelerazione Hardware e Buffer ampio
+// ==========================================
+// 1. INIZIALIZZAZIONE MAPPA LEAFLET
+// ==========================================
 const myRenderer = L.canvas({ padding: 1.5 });
 
 const map = L.map('map', {
-  center: [0, 10], // Equatore
+  center: [0, 10], 
   zoom: 4,
   minZoom: 3,
   maxZoom: 6,
@@ -30,9 +30,26 @@ const map = L.map('map', {
   preferCanvas: true,
   renderer: myRenderer,
   zoomControl: false,
-  worldCopyJump: true, // Aiuta a gestire i bordi della mappa
+  worldCopyJump: true,
   layers: [] 
 });
+
+// IL DATABASE DEI CONFINI - Usa il nome corretto dal file world.js (datiConfini)
+if (typeof datiConfini !== 'undefined') {
+  L.geoJSON(datiConfini, {
+      style: function(feature) {
+          return {
+              fillColor: "#3a5a40", // Verde bosco scuro
+              weight: 1, 
+              opacity: 1,
+              color: "#c2a153", // Oro scuro/bronzo per i confini
+              fillOpacity: 1
+          };
+      }
+  }).addTo(map);
+} else {
+  console.error("Attenzione: file world.js non caricato o nome variabile errato!");
+}
 
 const capitali = [
 { nome: "Sukhumi", nazione: "Abcasia", lat: 43.00, lng: 41.02 },
@@ -237,21 +254,8 @@ const capitali = [
 { nome: "Hanoi", nazione: "Vietnam", lat: 21.03, lng: 105.83 },
 { nome: "Sana'a", nazione: "Yemen", lat: 15.35, lng: 44.21 },
 { nome: "Lusaka", nazione: "Zambia", lat: -15.42, lng: 28.28 },
-{ nome: "Harare", nazione: "Zimbabwe", lat: -17.83, lng: 31.05 },
+{ nome: "Harare", nazione: "Zimbabwe", lat: -17.83, lng: 31.05 }
 ];
-
-// 3. Disegno confini RAFFINATO
-L.geoJSON(datiConfini, {
-  renderer: myRenderer,
-  style: { 
-    color: '#999',       // Grigio più chiaro
-    weight: 0.7,         // Linea più sottile
-    fillColor: '#ffffff', 
-    fillOpacity: 1,
-    smoothFactor: 1 
-  },
-  interactive: false 
-}).addTo(map);
 
 // Variabili di Stato
 let modalitaCorrente = ''; 
@@ -264,7 +268,9 @@ let punteggio = 0;
 let inAttesa = false;
 let puntiniMappa = {};
 
-// --- GESTIONE MENU E NAVIGAZIONE ---
+// ==========================================
+// 2. GESTIONE MENU E NAVIGAZIONE
+// ==========================================
 function mostraSelettoreTempo() {
   document.getElementById('primary-buttons').style.display = 'none';
   document.getElementById('time-selector').style.display = 'block';
@@ -279,6 +285,7 @@ function tornaAlMenu() {
   clearInterval(countdownInterval);
   document.getElementById('main-menu').style.display = 'flex';
   document.getElementById('game-over-screen').style.display = 'none';
+  
   if(punteggio > 0 && modalitaCorrente !== 'studio') {
     document.getElementById('last-score-text').innerText = "Ultimo punteggio: " + punteggio;
   }
@@ -288,25 +295,22 @@ function avviaModalita(modo, tempo = 0) {
   modalitaCorrente = modo;
   tempoImpostato = tempo;
   
-  // Nascondi Menù
   document.getElementById('main-menu').style.display = 'none';
   nascondiSelettoreTempo();
 
-  // Reset Interfaccia e Logica
   clearInterval(countdownInterval);
   punteggio = 0;
   inAttesa = false;
   capitaliDaGiocare = [...capitali];
   
-  // Pulizia Mappa
+  // RESET PALLINI - Tornano tutti visibili ma "spenti" (azzurri semi-trasparenti)
   for (let n in puntiniMappa) {
-    puntiniMappa[n].setStyle({ color: '#007BFF', fillColor: '#007BFF', fillOpacity: 0 });
+    puntiniMappa[n].setStyle({ color: '#ffffff', fillColor: '#007BFF', fillOpacity: 0.6, weight: 1.5 });
     puntiniMappa[n].hitBox.unbindTooltip();
   }
 
-  // Configurazione in base alla modalità
   if (modo === 'studio') {
-    document.getElementById('target-text').innerText = "Esplora e clicca i pallini";
+    document.getElementById('target-text').innerText = "Esplora liberamente";
     document.getElementById('score').style.display = 'none';
     document.getElementById('timer-display').style.display = 'none';
   } else if (modo === 'libera') {
@@ -325,33 +329,45 @@ function avviaModalita(modo, tempo = 0) {
   }
 }
 
-// --- LOGICA DI GIOCO ---
+// ==========================================
+// 3. LOGICA DI GIOCO E CREAZIONE PALLINI
+// ==========================================
 function calcolaRaggio() { return map.getZoom() * 1.2; }
 
 function creaTestoTooltip(c) {
   return `<div style="text-align: center; line-height: 1.3;">
-            <b style="color: #444; font-size: 12px;">${c.nazione.toUpperCase()}</b><br>
-            <span style="color: #666; font-size: 13px;">${c.nome}</span>
+            <b style="color: #0a1128; font-size: 13px;">${c.nazione.toUpperCase()}</b><br>
+            <span style="color: #c2a153; font-weight: bold; font-size: 14px;">${c.nome}</span>
           </div>`;
 }
 
-// Inizializzazione Pallini (Viene chiamata una sola volta all'avvio)
+// Creazione dei pallini
 capitali.forEach(c => {
+  // Pallino grafico VISIBILE (bordo bianco, fill azzurro semi-trasparente)
   const marker = L.circleMarker([c.lat, c.lng], {
-    color: '#007BFF', fillOpacity: 0, radius: calcolaRaggio(), weight: 1.5, interactive: false 
+    color: '#ffffff', 
+    weight: 1.5,
+    fillColor: '#007BFF',
+    fillOpacity: 0.6,
+    radius: calcolaRaggio(),
+    interactive: false 
   }).addTo(map);
 
+  // Pallino logico TRASPARENTE per i click
   const hitBox = L.circleMarker([c.lat, c.lng], {
-    color: 'transparent', fillColor: 'transparent', fillOpacity: 0, opacity: 0, radius: 7, interactive: true    
+    color: 'transparent',
+    fillColor: 'transparent',
+    fillOpacity: 0,
+    radius: 12,
+    interactive: true 
   }).addTo(map);
 
   marker.hitBox = hitBox;
   puntiniMappa[c.nome] = marker;
 
   hitBox.on('click', () => {
-    // Se siamo in MODALITÀ STUDIO, mostra solo il nome senza punti
     if (modalitaCorrente === 'studio') {
-      marker.setStyle({ fillOpacity: 0.5 });
+      marker.setStyle({ color: '#ffffff', fillColor: '#ffd700', fillOpacity: 0.9, weight: 2 });
       marker.hitBox.bindTooltip(creaTestoTooltip(c)).openTooltip();
       return;
     }
@@ -363,18 +379,24 @@ capitali.forEach(c => {
     const markerCorretto = puntiniMappa[capitaleCorrente.nome];
 
     if (c.nome === capitaleCorrente.nome) {
-      marker.setStyle({ color: '#2E7D32', fillColor: '#4CAF50', fillOpacity: 1 });
+      // GIUSTO -> Oro
+      marker.setStyle({ color: '#ffffff', fillColor: '#ffd700', fillOpacity: 1, weight: 2 });
       marker.hitBox.bindTooltip(creaTestoTooltip(c), { direction: 'top', offset: [0, -6] }).openTooltip();
       punteggio += 10;
     } else {
-      marker.setStyle({ color: '#c62828', fillColor: '#ef5350', fillOpacity: 1 });
-      markerCorretto.setStyle({ color: '#2E7D32', fillColor: '#4CAF50', fillOpacity: 1 });
+      // SBAGLIATO -> Rosso, Corretto -> Oro
+      marker.setStyle({ color: '#ffffff', fillColor: '#d62828', fillOpacity: 1, weight: 2 });
+      markerCorretto.setStyle({ color: '#ffffff', fillColor: '#ffd700', fillOpacity: 1, weight: 2 });
       markerCorretto.hitBox.bindTooltip(creaTestoTooltip(capitaleCorrente), { direction: 'top', offset: [0, -6] }).openTooltip();
     }
 
     document.getElementById('score').innerText = "Punteggio: " + punteggio;
+    
     setTimeout(() => {
-      if (c.nome !== capitaleCorrente.nome) { marker.setStyle({ color: '#007BFF', fillOpacity: 0 }); }
+      // Ritorna allo stato base se hai sbagliato (spegne il rosso)
+      if (c.nome !== capitaleCorrente.nome) { 
+          marker.setStyle({ color: '#ffffff', fillColor: '#007BFF', fillOpacity: 0.6, weight: 1.5 }); 
+      }
       nuovaCapitale();
     }, 600);
   });
@@ -383,18 +405,23 @@ capitali.forEach(c => {
 function nuovaCapitale() {
   inAttesa = false;
   if (modalitaCorrente === 'tempo' && tempoRimanente <= 0) return;
+  
   if (capitaliDaGiocare.length === 0) {
     document.getElementById('target-text').innerText = "Mappa completata!";
     if (modalitaCorrente === 'tempo') finePartitaTempo();
     return;
   }
+  
   const idx = Math.floor(Math.random() * capitaliDaGiocare.length);
   capitaleCorrente = capitaliDaGiocare[idx];
   capitaliDaGiocare.splice(idx, 1);
-  document.getElementById('target-text').innerText = "Trova: " + capitaleCorrente.nome;
+  
+  document.getElementById('target-text').innerHTML = "Trova: <span id='target-capital'>" + capitaleCorrente.nome + "</span>";
 }
 
-// --- GESTIONE TEMPO E RECORD ---
+// ==========================================
+// 4. TEMPO E DIMENSIONI
+// ==========================================
 function tickTimer() {
   tempoRimanente--;
   aggiornaDisplayTimer();
@@ -411,115 +438,85 @@ function finePartitaTempo() {
   clearInterval(countdownInterval);
   inAttesa = true;
   document.getElementById('target-text').innerText = "Tempo Scaduto!";
-  
   durataPartitaMinuti = tempoImpostato / 60;
   
   document.getElementById('final-score-display').innerText = punteggio + " Punti";
   document.getElementById('lb-time-label').innerText = durataPartitaMinuti;
   
-  // Prepara l'input del nome
   document.getElementById("player-name").value = "";
   document.getElementById("player-name").disabled = false;
   document.getElementById("name-input-container").style.display = "block";
   document.getElementById("leaderboard-container").style.display = "none";
-
   document.getElementById("game-over-screen").style.display = "flex"; 
 }
 
-// Reattività Zoom
 map.on('zoomend', () => {
   const r = calcolaRaggio();
   for (let n in puntiniMappa) puntiniMappa[n].setRadius(r);
 });
 
-// Forza Leaflet a ricalcolare le dimensioni esatte dopo l'avvio su mobile
-setTimeout(() => {
-  map.invalidateSize();
-}, 500);
+setTimeout(() => { map.invalidateSize(); }, 500);
+window.addEventListener('resize', () => { map.invalidateSize(); });
 
-// Aggiorna anche se si ruota il telefono
-window.addEventListener('resize', () => {
-  map.invalidateSize();
-});
+// ==========================================
+// 5. CLASSIFICHE GLOBALI FIREBASE
+// ==========================================
+function formattaRigaClassifica(posizione, nome, score) {
+  let medaglia = posizione + ". ";
+  if (posizione === 1) medaglia = "🥇 ";
+  if (posizione === 2) medaglia = "🥈 ";
+  if (posizione === 3) medaglia = "🥉 ";
+  return `<li>${medaglia} ${nome} — <span style="color:#c2a153">${score} pt</span></li>`; 
+}
 
-// --- INIZIO FUNZIONI DATABASE GLOBALE ---
 function inviaPunteggioGlobale() {
   const nomeInserito = document.getElementById("player-name").value.trim();
-  
   if (nomeInserito === "") {
-    alert("Inserisci un nome o un nickname per salvarti in classifica!");
+    alert("Inserisci un nome per la classifica!");
     return;
   }
   
   document.getElementById("player-name").disabled = true;
   document.getElementById("btn-submit-score").innerText = "Invio in corso...";
-  
   const nomeCollezione = "classifica_" + durataPartitaMinuti + "min";
   
   db.collection(nomeCollezione).add({
     name: nomeInserito,
-    score: punteggio, // Modificato per corrispondere alla tua variabile globale
+    score: punteggio, 
     timestamp: firebase.firestore.FieldValue.serverTimestamp()
-  })
-  .then(() => {
+  }).then(() => {
     document.getElementById("name-input-container").style.display = "none";
     document.getElementById("btn-submit-score").innerText = "🚀 Invia alla Classifica";
     caricaClassificaGlobale(durataPartitaMinuti);
-  })
-  .catch((error) => {
+  }).catch((error) => {
     console.error("Errore:", error);
-    alert("Errore di rete. Riprova tra poco.");
+    alert("Errore di rete.");
     document.getElementById("player-name").disabled = false;
     document.getElementById("btn-submit-score").innerText = "🚀 Invia alla Classifica";
   });
 }
 
 function caricaClassificaGlobale(minuti) {
-  const nomeCollezione = "classifica_" + minuti + "min";
   const listaHTML = document.getElementById("leaderboard-list");
-  
   listaHTML.innerHTML = "<li>Caricamento podio...</li>";
   document.getElementById("leaderboard-container").style.display = "block";
   
-  db.collection(nomeCollezione)
-    .orderBy("score", "desc")
-    .limit(5)
-    .get()
-    .then((querySnapshot) => {
+  db.collection("classifica_" + minuti + "min").orderBy("score", "desc").limit(5).get().then((querySnapshot) => {
       listaHTML.innerHTML = ""; 
       if (querySnapshot.empty) {
-        listaHTML.innerHTML = "<li>Nessun punteggio record. Sii il primo!</li>";
-        return;
+        listaHTML.innerHTML = "<li>Nessun record presente.</li>"; return;
       }
-      
       let posizione = 1;
       querySnapshot.forEach((doc) => {
-        const dati = doc.data();
-        let medaglia = posizione + ". ";
-        if (posizione === 1) medaglia = "🥇 ";
-        if (posizione === 2) medaglia = "🥈 ";
-        if (posizione === 3) medaglia = "🥉 ";
-        
-        listaHTML.innerHTML += `<li>${medaglia} ${dati.name} — <span style="color:#007BFF">${dati.score} pt</span></li>`;
+        listaHTML.innerHTML += formattaRigaClassifica(posizione, doc.data().name, doc.data().score);
         posizione++;
       });
-    })
-    .catch((error) => {
-      listaHTML.innerHTML = "<li>Impossibile caricare la classifica globale.</li>";
-    });
+  }).catch(() => { listaHTML.innerHTML = "<li>Errore caricamento.</li>"; });
 }
-// --- FINE FUNZIONI DATABASE GLOBALE ---
-
-// ==========================================
-// FUNZIONI CLASSIFICA DAL MENU PRINCIPALE
-// ==========================================
 
 function apriSchermataClassifiche() {
-  // Nasconde il menu e mostra la bacheca
   document.getElementById('main-menu').style.display = 'none';
   document.getElementById('leaderboard-menu-screen').style.display = 'flex';
-  
-  // Carica in automatico la classifica dei 2 minuti per non lasciare lo schermo vuoto
   caricaClassificaMenu(2);
 }
 
@@ -531,37 +528,17 @@ function chiudiSchermataClassifiche() {
 function caricaClassificaMenu(minuti) {
   document.getElementById('lb-menu-title').innerText = "Top 5 Globale - " + minuti + " Min";
   const listaHTML = document.getElementById('leaderboard-menu-list');
-  
   listaHTML.innerHTML = "<li>Caricamento in corso... ⏳</li>";
   
-  const nomeCollezione = "classifica_" + minuti + "min";
-  
-  // Interroga il database di Firebase
-  db.collection(nomeCollezione)
-    .orderBy("score", "desc")
-    .limit(5)
-    .get()
-    .then((querySnapshot) => {
+  db.collection("classifica_" + minuti + "min").orderBy("score", "desc").limit(5).get().then((querySnapshot) => {
       listaHTML.innerHTML = ""; 
       if (querySnapshot.empty) {
-        listaHTML.innerHTML = "<li>Nessun record presente. Gioca per primo!</li>";
-        return;
+        listaHTML.innerHTML = "<li>Nessun record.</li>"; return;
       }
-      
       let posizione = 1;
       querySnapshot.forEach((doc) => {
-        const dati = doc.data();
-        let medaglia = posizione + ". ";
-        if (posizione === 1) medaglia = "🥇 ";
-        if (posizione === 2) medaglia = "🥈 ";
-        if (posizione === 3) medaglia = "🥉 ";
-        
-        listaHTML.innerHTML += `<li>${medaglia} ${dati.name} — <span style="color:#007BFF">${dati.score} pt</span></li>`;
+        listaHTML.innerHTML += formattaRigaClassifica(posizione, doc.data().name, doc.data().score);
         posizione++;
       });
-    })
-    .catch((error) => {
-      console.error("Errore classifica menu:", error);
-      listaHTML.innerHTML = "<li>Errore di connessione.</li>";
-    });
+  }).catch(() => { listaHTML.innerHTML = "<li>Errore connessione.</li>"; });
 }
