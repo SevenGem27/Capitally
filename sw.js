@@ -1,4 +1,4 @@
-const CACHE_NAME = 'capitally-cache-v2'; // <--- Questo numero cambierà ai prossimi aggiornamenti
+const CACHE_NAME = 'capitally-cache-v3'; // <--- Questo numero cambierà ai prossimi aggiornamenti
 const ASSETS = [
   './',
   './index.html',
