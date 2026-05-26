@@ -52,10 +52,13 @@ html, body {
   backdrop-filter: blur(8px);
 }
 
-/* Evita il blur sul grand-menu e fonde lo sfondo con lo spazio dell'immagine */
+/* Evita il blur sul grand-menu, fonde lo sfondo e centra perfettamente il contenitore */
 #grand-menu { 
     backdrop-filter: none; 
     background: #02050f; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center;
 }
 
 .menu-card {
@@ -143,17 +146,14 @@ button:active { transform: scale(0.96); }
     position: relative;
     width: 100%;
     max-width: 450px; /* Perfetto per mantenere le proporzioni su telefono/PC */
-    height: 100dvh; /* Altezza dinamica che copre tutto lo schermo */
-    display: flex;
-    justify-content: center;
-    align-items: center;
     margin: 0 auto;
+    /* Rimosso l'height: 100dvh, così il contenitore abbraccia l'immagine perfettamente! */
 }
 
 .menu-bg-img {
     width: 100%;
-    height: 100%;
-    object-fit: contain; /* Assicura che l'immagine entri tutta e mantenga le proporzioni */
+    height: auto; 
+    max-height: 95dvh; /* Impedisce che l'immagine diventi troppo grande per lo schermo */
     display: block;
 }
 
@@ -167,7 +167,7 @@ button:active { transform: scale(0.96); }
     
     /* -------------------------------------------------------------
        TRUCCO DI DEBUG:
-       Scommenta la riga sotto per vedere i riquadri rossi.
+       Togli i commenti dalla riga sotto per vedere i riquadri rossi.
        Se non coincidono perfettamente con il tuo menù, puoi
        modificare le percentuali (top, height) qui sotto.
        ------------------------------------------------------------- */
@@ -180,6 +180,7 @@ button:active { transform: scale(0.96); }
 }
 
 /* Coordinate mappate sull'immagine verticale inviata */
+/* Usa il "trucco di debug" qui sopra se devi sistemare queste percentuali! */
 #area-mondo   { top: 12%; left: 25%; width: 50%; height: 20%; border-radius: 50%; }
 #area-africa  { top: 35%; left: 20%; width: 60%; height: 11%; }
 #area-america { top: 48%; left: 20%; width: 60%; height: 11%; }
